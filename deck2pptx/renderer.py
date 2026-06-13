@@ -14,12 +14,12 @@ def _remove_existing_slides(prs):
         prs.part.drop_rel(slide_id.rId)
         slide_id_list.remove(slide_id)
 
-def _placeholder_name_matches(actual_name: str, requested_name: str) -> bool:
+def _name_matches(actual_name: str, requested_name: str) -> bool:
     actual = actual_name.strip().casefold()
     requested = requested_name.strip().casefold()
-    return actual == requested or actual.startswith(requested)
+    return bool(requested) and actual.startswith(requested)
 
-def _placeholder_name_equals(actual_name: str, requested_name: str) -> bool:
+def _name_equals(actual_name: str, requested_name: str) -> bool:
     return actual_name.strip().casefold() == requested_name.strip().casefold()
 
 def render_deck(deck: Deck, output_path: str, base_dir: Path = Path('.'), template_path: str = None):
@@ -73,7 +73,7 @@ def render_deck(deck: Deck, output_path: str, base_dir: Path = Path('.'), templa
         if slide_model.layout_hint:
             # Try to find by name
             for ly in prs.slide_layouts:
-                if ly.name == slide_model.layout_hint:
+                if _name_matches(ly.name, slide_model.layout_hint):
                     slide_layout = ly
                     break
         
@@ -96,11 +96,11 @@ def render_deck(deck: Deck, output_path: str, base_dir: Path = Path('.'), templa
         def find_placeholder(name):
             if not name: return None
             for shape in slide.shapes:
-                if _placeholder_name_equals(shape.name, name):
+                if _name_equals(shape.name, name):
                     return shape
             matching_layout_idx = None
             for layout_shape in slide.slide_layout.placeholders:
-                if _placeholder_name_matches(layout_shape.name, name):
+                if _name_matches(layout_shape.name, name):
                     matching_layout_idx = layout_shape.placeholder_format.idx
                     break
             if matching_layout_idx is not None:
@@ -108,7 +108,7 @@ def render_deck(deck: Deck, output_path: str, base_dir: Path = Path('.'), templa
                     if shape.placeholder_format.idx == matching_layout_idx:
                         return shape
             for shape in slide.shapes:
-                if _placeholder_name_matches(shape.name, name):
+                if _name_matches(shape.name, name):
                     return shape
             return None
 

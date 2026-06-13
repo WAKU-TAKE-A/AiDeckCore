@@ -114,6 +114,23 @@ def test_build_with_template(tmp_path):
     assert len(out_prs.slides) == 1
     assert out_prs.slides[0].shapes.title.text == "Slide 1"
 
+def test_layout_lookup_uses_case_insensitive_prefix(tmp_path):
+    template_path = tmp_path / "layout_prefix_template.pptx"
+    prs = Presentation()
+    prs.save(str(template_path))
+
+    deck = Deck(title="Test", orientation="landscape", theme="default")
+    deck.slides.append(Slide(title="Prefix Layout", layout_hint="title sl"))
+
+    output_path = tmp_path / "output.pptx"
+    render_deck(deck, str(output_path), base_dir=tmp_path, template_path=str(template_path))
+
+    out_prs = Presentation(str(output_path))
+
+    assert len(out_prs.slides) == 1
+    assert out_prs.slides[0].slide_layout.name == "Title Slide"
+    assert out_prs.slides[0].shapes.title.text == "Prefix Layout"
+
 def test_build_with_template_does_not_copy_existing_template_slides(tmp_path):
     template_path = tmp_path / "template_with_starter_slide.pptx"
     prs = Presentation()
@@ -162,6 +179,30 @@ def test_placeholder_lookup_accepts_powerpoint_number_suffix(tmp_path):
 
     assert subtitle_shapes
     assert subtitle_shapes[0].text == "Subtitle by prefix"
+
+def test_placeholder_lookup_uses_case_insensitive_prefix(tmp_path):
+    template_path = tmp_path / "placeholder_prefix_template.pptx"
+    prs = Presentation()
+    prs.save(str(template_path))
+
+    deck = Deck(title="Test", orientation="landscape", theme="default")
+    slide = Slide(title="Title", layout_hint="Title Slide")
+    slide.elements.append(Text(content="Subtitle by lower prefix", placeholder="sub"))
+    deck.slides.append(slide)
+
+    output_path = tmp_path / "output.pptx"
+    render_deck(deck, str(output_path), base_dir=tmp_path, template_path=str(template_path))
+
+    out_prs = Presentation(str(output_path))
+    subtitle_shapes = [
+        shape
+        for shape in out_prs.slides[0].shapes
+        if getattr(shape, "has_text_frame", False)
+        and shape.name.casefold().startswith("subtitle")
+    ]
+
+    assert subtitle_shapes
+    assert subtitle_shapes[0].text == "Subtitle by lower prefix"
 
 def test_placeholder_lookup_uses_layout_placeholder_name_when_slide_name_changes(tmp_path):
     template_path = tmp_path / "renamed_layout_placeholder_template.pptx"

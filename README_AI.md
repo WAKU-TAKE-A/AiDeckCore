@@ -51,7 +51,7 @@ Then:
 1. Generate an input file in YAML or Markdown.
    - Do not modify project code unless the user explicitly asks for code changes. Prefer writing/converting presentation input files over changing code.
    - If Markdown cannot express the requested deck cleanly, convert the context into YAML targeting the same Deck model.
-   - Element-level placeholder binding: `<!-- placeholder="ExactName" -->` to route an element to a specific placeholder shape on the slide layout. The renderer tries an exact slide-shape match first, then maps matching layout placeholder names to the generated slide placeholder with the same idx. This handles PowerPoint-created names such as `Subtitle 2`. Note: Missing placeholders fall back to default auto-positioning.
+   - Element-level placeholder binding: `<!-- placeholder="ExactName" -->` to route an element to a specific placeholder shape on the slide layout. Layout and placeholder names are matched by case-insensitive prefix. The renderer maps matching layout placeholder names to the generated slide placeholder with the same idx. This handles PowerPoint-created names such as `Subtitle 2`. Note: Missing placeholders fall back to default auto-positioning.
 
 ### Template-Aware Workflow
 
@@ -64,7 +64,7 @@ You can author presentations targeting a specific user PPTX template. Follow thi
    This reveals the exact layout names and placeholder names available.
 
 2. **Author the Input (Markdown/YAML)**
-   Use the exact layout and placeholder names discovered. If PowerPoint appends a number on the actual slide, specify the stable layout placeholder prefix, for example `Subtitle` for `Subtitle 2`. Do NOT guess aliases like `subtitle -> SubTitle` or fix typos like `SubTitile` unless explicitly requested.
+   Use the exact layout and placeholder names discovered, or a stable prefix of those names. Matching is case-insensitive, so `title&body` can target `Title&BodyLayout`, and `sub` can target `Subtitle 2`. Do NOT guess aliases like `subtitle -> SubTitle` or fix typos like `SubTitile` unless explicitly requested.
    ```markdown
    <!-- layout="TitleLayout" -->
    # My Presentation
