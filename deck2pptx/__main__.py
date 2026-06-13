@@ -58,11 +58,15 @@ def build_cmd(args):
     try:
         deck = load_deck(args.input_file, format=args.format)
         validate_deck(deck, Path(args.input_file).parent)
-        render_deck(deck, args.output_file, base_dir=Path(args.input_file).parent)
+        render_deck(deck, args.output_file, base_dir=Path(args.input_file).parent, template_path=getattr(args, 'template', None))
         print(f"Built PPTX successfully to {args.output_file}")
     except Exception as e:
         print(f"Build failed: {e}", file=sys.stderr)
         sys.exit(1)
+
+def inspect_template_cmd(args):
+    from .inspect_template import inspect_template
+    inspect_template(args.template_file, args.format)
 
 def main():
     parser = argparse.ArgumentParser(description="Generate PowerPoint from Semantic Deck Format")
@@ -79,6 +83,12 @@ def main():
     p_inspect.add_argument('--format', dest="output_format", help="Output format (e.g. json)", default=None)
     p_inspect.add_argument('--input-format', dest="format", help="Force input format (yaml or markdown)", default=None)
     p_inspect.set_defaults(func=inspect_cmd)
+
+    # Inspect Template
+    p_inspect_tmpl = subparsers.add_parser('inspect-template', help="Inspect PPTX template layouts and placeholders")
+    p_inspect_tmpl.add_argument('template_file', help="Path to PPTX template")
+    p_inspect_tmpl.add_argument('--format', choices=["json", "text"], default="text", help="Output format")
+    p_inspect_tmpl.set_defaults(func=inspect_template_cmd)
     
     # Validate
     p_validate = subparsers.add_parser('validate', help="Validate an input deck")
@@ -91,6 +101,7 @@ def main():
     p_build = subparsers.add_parser('build', help="Build PPTX from input deck")
     p_build.add_argument('input_file', help="Path to input YAML or MD file")
     p_build.add_argument('output_file', help="Path to output PPTX file")
+    p_build.add_argument('--template', help="Path to PPTX template file to use for rendering", default=None)
     p_build.add_argument('--input-format', dest="format", help="Force input format (yaml or markdown)", default=None)
     p_build.set_defaults(func=build_cmd)
     

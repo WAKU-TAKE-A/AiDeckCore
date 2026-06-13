@@ -7,8 +7,13 @@ from .models import Deck, Slide, Text, BulletList, Image, Table, Gallery, Flow
 from .layout import Layout, get_slide_layout_type
 from .theme import Theme
 
-def render_deck(deck: Deck, output_path: str | Path, base_dir: str | Path = '.'):
-    prs = Presentation()
+def render_deck(deck: Deck, output_path: str, base_dir: Path = Path('.'), template_path: str = None):
+    # Initialize Presentation
+    if template_path:
+        prs = Presentation(template_path)
+    else:
+        prs = Presentation()
+    
     base_dir = Path(base_dir)
     theme = Theme(deck.theme)
     
@@ -22,10 +27,49 @@ def render_deck(deck: Deck, output_path: str | Path, base_dir: str | Path = '.')
         
     layout = Layout(prs.slide_width, prs.slide_height)
     
-    # Use blank layout (index 6 is blank by default in standard templates)
-    slide_layout = prs.slide_layouts[6]
+    render_slides = list(deck.slides)
     
-    for slide_model in deck.slides:
+    if deck.toc:
+        toc_title_text = deck.toc_title or "Table of Contents"
+        toc_items = []
+        for i, s in enumerate(deck.slides):
+            if i == 0 and get_slide_layout_type(s) == "title":
+                continue
+            if s.title:
+                toc_items.append(s.title)
+        
+        toc_slide = Slide(
+            title=toc_title_text,
+            layout_hint="Title and Content",
+            elements=[BulletList(items=toc_items)]
+        )
+        
+        if len(render_slides) > 0:
+            render_slides.insert(1, toc_slide)
+        else:
+            render_slides.append(toc_slide)
+    
+    for slide_model in render_slides:
+        layout_type = get_slide_layout_type(slide_model)
+        
+        # Determine layout
+        slide_layout = None
+        if slide_model.layout_hint:
+            # Try to find by name
+            for ly in prs.slide_layouts:
+                if ly.name == slide_model.layout_hint:
+                    slide_layout = ly
+                    break
+        
+        if not slide_layout:
+            # fallback to blank (index 6 usually) or title (index 0)
+            if layout_type == "title" and len(prs.slide_layouts) > 0:
+                slide_layout = prs.slide_layouts[0]
+            elif len(prs.slide_layouts) > 6:
+                slide_layout = prs.slide_layouts[6]
+            elif len(prs.slide_layouts) > 0:
+                slide_layout = prs.slide_layouts[-1]
+                
         slide = prs.slides.add_slide(slide_layout)
         
         # Add slide notes if any
@@ -33,85 +77,140 @@ def render_deck(deck: Deck, output_path: str | Path, base_dir: str | Path = '.')
             notes_slide = slide.notes_slide
             notes_slide.notes_text_frame.text = slide_model.notes
             
-        layout_type = get_slide_layout_type(slide_model)
+        def find_placeholder(name):
+            if not name: return None
+            for shape in slide.shapes:
+                if shape.name == name:
+                    return shape
+            return None
+
+        # Try to use default title/subtitle placeholders if no manual coords
+        title_ph = None
+        subtitle_ph = None
+        for shape in slide.shapes:
+            if shape.is_placeholder:
+                if shape.placeholder_format.type in (1, 3): # TITLE or CENTER_TITLE
+                    title_ph = shape
+                elif shape.placeholder_format.type == 4: # SUBTITLE
+                    subtitle_ph = shape
         
-        # Render Title/Subtitle
-        if layout_type == "title":
-            title_y = layout.slide_height / 3
-            txBox = slide.shapes.add_textbox(layout.title_x, title_y, layout.title_width, Inches(1.5))
-            tf = txBox.text_frame
-            tf.word_wrap = True
-            p = tf.paragraphs[0]
-            p.text = slide_model.title
-            p.alignment = PP_ALIGN.CENTER
-            p.font.name = theme.font_name
-            p.font.size = theme.size_title
-            p.font.color.rgb = theme.color_text
-            
-            if slide_model.subtitle:
-                p2 = tf.add_paragraph()
-                p2.text = slide_model.subtitle
-                p2.alignment = PP_ALIGN.CENTER
-                p2.font.name = theme.font_name
-                p2.font.size = theme.size_subtitle
-                p2.font.color.rgb = theme.color_text_light
-        else:
-            if slide_model.title:
-                txBox = slide.shapes.add_textbox(layout.title_x, layout.title_y, layout.title_width, layout.title_height)
+        if slide_model.title:
+            if title_ph:
+                title_ph.text = slide_model.title
+            else:
+                title_y = layout.slide_height / 3 if layout_type == "title" else layout.title_y
+                txBox = slide.shapes.add_textbox(layout.title_x, title_y, layout.title_width, Inches(1.5) if layout_type == "title" else layout.title_height)
                 tf = txBox.text_frame
                 tf.word_wrap = True
                 p = tf.paragraphs[0]
                 p.text = slide_model.title
+                if layout_type == "title": p.alignment = PP_ALIGN.CENTER
                 p.font.name = theme.font_name
                 p.font.size = theme.size_title
-                p.font.color.rgb = theme.color_primary
-                
-                if slide_model.subtitle:
-                    p2 = tf.add_paragraph()
-                    p2.text = slide_model.subtitle
-                    p2.font.name = theme.font_name
-                    p2.font.size = theme.size_subtitle
-                    p2.font.color.rgb = theme.color_text_light
+                p.font.color.rgb = theme.color_primary if layout_type != "title" else theme.color_text
+        
+        if slide_model.subtitle:
+            if subtitle_ph:
+                subtitle_ph.text = slide_model.subtitle
+            else:
+                # If we made a manual title box, add paragraph there if title existed, else make new box
+                # For simplicity, fallback to adding a new textbox below title
+                sub_y = (layout.slide_height / 3 + Inches(1.5)) if layout_type == "title" else (layout.title_y + layout.title_height)
+                txBox = slide.shapes.add_textbox(layout.title_x, sub_y, layout.title_width, Inches(1))
+                tf = txBox.text_frame
+                tf.word_wrap = True
+                p = tf.paragraphs[0]
+                p.text = slide_model.subtitle
+                if layout_type == "title": p.alignment = PP_ALIGN.CENTER
+                p.font.name = theme.font_name
+                p.font.size = theme.size_subtitle
+                p.font.color.rgb = theme.color_text_light
         
         # Simple rendering layout flow
         current_y = layout.content_y
         content_x = layout.content_x
         for element in slide_model.elements:
+            ph = find_placeholder(getattr(element, 'placeholder', None))
+            
             if isinstance(element, Text):
-                txBox = slide.shapes.add_textbox(content_x, current_y, layout.content_width, Inches(1))
-                tf = txBox.text_frame
-                tf.word_wrap = True
-                p = tf.paragraphs[0]
-                p.text = element.content
-                p.font.name = theme.font_name
-                p.font.size = theme.size_body
-                p.font.color.rgb = theme.color_text
-                current_y += Inches(0.5)
+                if ph and ph.has_text_frame:
+                    ph.text = element.content
+                else:
+                    target_x = ph.left if ph else content_x
+                    target_y = ph.top if ph else current_y
+                    target_w = ph.width if ph else layout.content_width
+                    txBox = slide.shapes.add_textbox(target_x, target_y, target_w, Inches(1))
+                    tf = txBox.text_frame
+                    tf.word_wrap = True
+                    p = tf.paragraphs[0]
+                    p.text = element.content
+                    p.font.name = theme.font_name
+                    p.font.size = Pt(deck.font_size_l0) if deck.font_size_l0 else theme.size_body
+                    p.font.color.rgb = theme.color_text
+                    if not ph: current_y += Inches(0.5)
                 
             elif isinstance(element, BulletList):
-                txBox = slide.shapes.add_textbox(content_x, current_y, layout.content_width, Inches(2))
-                tf = txBox.text_frame
-                tf.word_wrap = True
-                for i, item in enumerate(element.items):
-                    if i == 0:
-                        p = tf.paragraphs[0]
-                    else:
-                        p = tf.add_paragraph()
-                    p.text = item
-                    if i > 0:
-                        p.level = 1
-                    p.font.name = theme.font_name
-                    p.font.size = theme.size_body if i == 0 else theme.size_body_small
-                    p.font.color.rgb = theme.color_text
-                current_y += Inches(2)
+                from .models import ListItem
+                if ph and ph.has_text_frame:
+                    tf = ph.text_frame
+                    tf.clear()
+                    for i, item in enumerate(element.items):
+                        is_li = isinstance(item, ListItem)
+                        text = item.text if is_li else str(item)
+                        level = item.level if is_li else 0
+                        
+                        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+                        p.text = text
+                        if level > 0: p.level = level
+                        
+                        font_size = None
+                        if level == 0 and deck.font_size_l0: font_size = deck.font_size_l0
+                        elif level == 1 and deck.font_size_l1: font_size = deck.font_size_l1
+                        elif level == 2 and deck.font_size_l2: font_size = deck.font_size_l2
+                        elif level == 3 and deck.font_size_l3: font_size = deck.font_size_l3
+                        elif level >= 4 and deck.font_size_l4: font_size = deck.font_size_l4
+                        
+                        if font_size:
+                            p.font.size = Pt(font_size)
+                else:
+                    target_x = ph.left if ph else content_x
+                    target_y = ph.top if ph else current_y
+                    target_w = ph.width if ph else layout.content_width
+                    txBox = slide.shapes.add_textbox(target_x, target_y, target_w, Inches(2))
+                    tf = txBox.text_frame
+                    tf.word_wrap = True
+                    for i, item in enumerate(element.items):
+                        is_li = isinstance(item, ListItem)
+                        text = item.text if is_li else str(item)
+                        level = item.level if is_li else 0
+                        
+                        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+                        p.text = text
+                        if level > 0: p.level = level
+                        p.font.name = theme.font_name
+                        
+                        font_size = None
+                        if level == 0 and deck.font_size_l0: font_size = deck.font_size_l0
+                        elif level == 1 and deck.font_size_l1: font_size = deck.font_size_l1
+                        elif level == 2 and deck.font_size_l2: font_size = deck.font_size_l2
+                        elif level == 3 and deck.font_size_l3: font_size = deck.font_size_l3
+                        elif level >= 4 and deck.font_size_l4: font_size = deck.font_size_l4
+                        
+                        p.font.size = Pt(font_size) if font_size else (theme.size_body if level == 0 else theme.size_body_small)
+                        p.font.color.rgb = theme.color_text
+                    if not ph: current_y += Inches(2)
                 
             elif isinstance(element, Image):
                 img_path = base_dir / element.source
                 try:
-                    # contain fit to width if needed
-                    img_width = Inches(4) if Inches(4) < layout.content_width else layout.content_width
-                    slide.shapes.add_picture(str(img_path), content_x, current_y, width=img_width)
-                    current_y += Inches(3)
+                    if ph and hasattr(ph, 'insert_picture'):
+                        ph.insert_picture(str(img_path))
+                    else:
+                        target_x = ph.left if ph else content_x
+                        target_y = ph.top if ph else current_y
+                        target_w = ph.width if ph else (Inches(4) if Inches(4) < layout.content_width else layout.content_width)
+                        slide.shapes.add_picture(str(img_path), target_x, target_y, width=target_w)
+                        if not ph: current_y += Inches(3)
                 except Exception as e:
                     print(f"Failed to load image {img_path}: {e}")
                     
@@ -119,7 +218,11 @@ def render_deck(deck: Deck, output_path: str | Path, base_dir: str | Path = '.')
                 rows = len(element.rows) + 1 if element.headers else len(element.rows)
                 cols = len(element.headers) if element.headers else (len(element.rows[0]) if element.rows else 1)
                 
-                table_shape = slide.shapes.add_table(rows, cols, content_x, current_y, layout.content_width, Inches(1))
+                target_x = ph.left if ph else content_x
+                target_y = ph.top if ph else current_y
+                target_w = ph.width if ph else layout.content_width
+                
+                table_shape = slide.shapes.add_table(rows, cols, target_x, target_y, target_w, Inches(1))
                 table = table_shape.table
                 
                 row_offset = 0
@@ -134,9 +237,9 @@ def render_deck(deck: Deck, output_path: str | Path, base_dir: str | Path = '.')
                         cell_obj.text = str(cell)
                         for p in cell_obj.text_frame.paragraphs:
                             p.font.name = theme.font_name
-                            p.font.size = theme.size_body_small
+                            p.font.size = Pt(deck.font_size_l1) if deck.font_size_l1 else theme.size_body_small
                         
-                current_y += Inches(2)
+                if not ph: current_y += Inches(2)
                 
             elif isinstance(element, Gallery):
                 num_images = len(element.images)
@@ -251,6 +354,141 @@ def render_deck(deck: Deck, output_path: str | Path, base_dir: str | Path = '.')
                             )
 
                 current_y += Inches(3)
+
+            elif type(element).__name__ == 'Comparison':
+                num_cols = len(element.columns)
+                if num_cols > 0:
+                    col_width = (ph.width if ph else layout.content_width) / num_cols
+                    start_x = ph.left if ph else content_x
+                    start_y = ph.top if ph else current_y
+                    
+                    if element.title:
+                        tb = slide.shapes.add_textbox(start_x, start_y, col_width * num_cols, Inches(0.5))
+                        p = tb.text_frame.paragraphs[0]
+                        p.text = element.title
+                        p.font.name = theme.font_name
+                        p.font.size = theme.size_body
+                        p.font.bold = True
+                        p.alignment = PP_ALIGN.CENTER
+                        start_y += Inches(0.5)
+
+                    for i, col in enumerate(element.columns):
+                        x = start_x + (i * col_width)
+                        
+                        tb = slide.shapes.add_textbox(x, start_y, col_width, Inches(2))
+                        tf = tb.text_frame
+                        tf.word_wrap = True
+                        
+                        p = tf.paragraphs[0]
+                        p.text = col.label
+                        p.font.name = theme.font_name
+                        p.font.size = theme.size_body
+                        p.font.bold = True
+                        p.alignment = PP_ALIGN.CENTER
+                        
+                        for item in col.items:
+                            p = tf.add_paragraph()
+                            p.text = item
+                            p.level = 1
+                            p.font.name = theme.font_name
+                            p.font.size = theme.size_body_small
+                            
+                    if not ph: current_y += Inches(2.5)
+            
+            elif type(element).__name__ == 'Timeline':
+                start_x = ph.left if ph else content_x
+                start_y = ph.top if ph else current_y
+                width = ph.width if ph else layout.content_width
+                
+                event_height = Inches(0.8)
+                for i, ev in enumerate(element.events):
+                    y = start_y + (i * event_height)
+                    
+                    # Label
+                    tb = slide.shapes.add_textbox(start_x, y, Inches(1.5), event_height)
+                    p = tb.text_frame.paragraphs[0]
+                    p.text = ev.label
+                    p.font.name = theme.font_name
+                    p.font.size = theme.size_body
+                    p.font.bold = True
+                    p.font.color.rgb = theme.color_accent
+                    
+                    # Line
+                    slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, start_x + Inches(1.6), y + Inches(0.1), Inches(0.05), event_height - Inches(0.2)).fill.solid()
+                    
+                    # Content
+                    tb = slide.shapes.add_textbox(start_x + Inches(1.8), y, width - Inches(1.8), event_height)
+                    tf = tb.text_frame
+                    p = tf.paragraphs[0]
+                    p.text = ev.title
+                    p.font.name = theme.font_name
+                    p.font.size = theme.size_body
+                    p.font.bold = True
+                    
+                    if ev.description:
+                        p2 = tf.add_paragraph()
+                        p2.text = ev.description
+                        p2.font.name = theme.font_name
+                        p2.font.size = theme.size_body_small
+                        p2.font.color.rgb = theme.color_text_light
+                        
+                if not ph: current_y += len(element.events) * event_height + Inches(0.5)
+
+            elif type(element).__name__ == 'CodeBlock':
+                start_x = ph.left if ph else content_x
+                start_y = ph.top if ph else current_y
+                width = ph.width if ph else layout.content_width
+                
+                if element.caption or element.language:
+                    tb = slide.shapes.add_textbox(start_x, start_y, width, Inches(0.4))
+                    p = tb.text_frame.paragraphs[0]
+                    p.text = element.caption if element.caption else f"Language: {element.language}"
+                    p.font.name = theme.font_name
+                    p.font.size = theme.size_body_small
+                    p.font.italic = True
+                    start_y += Inches(0.4)
+                
+                shape = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, start_x, start_y, width, Inches(2))
+                shape.fill.solid()
+                shape.fill.fore_color.rgb = theme.color_surface
+                shape.line.color.rgb = theme.color_border
+                
+                tf = shape.text_frame
+                tf.word_wrap = False
+                p = tf.paragraphs[0]
+                p.text = element.code
+                p.font.name = "Consolas"
+                p.font.size = Pt(14)
+                p.font.color.rgb = theme.color_text
+                
+                if not ph: current_y += Inches(2.5)
+
+            elif type(element).__name__ == 'Tree':
+                start_x = ph.left if ph else content_x
+                start_y = ph.top if ph else current_y
+                width = ph.width if ph else layout.content_width
+                
+                tb = slide.shapes.add_textbox(start_x, start_y, width, Inches(2))
+                tf = tb.text_frame
+                
+                def render_tree_node(node, level):
+                    if level == 0:
+                        p = tf.paragraphs[0]
+                    else:
+                        p = tf.add_paragraph()
+                    
+                    p.text = node.label
+                    if level > 0:
+                        p.level = level
+                        
+                    p.font.name = theme.font_name
+                    p.font.size = Pt(18 - (level * 2)) if level < 4 else Pt(12)
+                    
+                    for child in node.children:
+                        render_tree_node(child, level + 1)
+                        
+                render_tree_node(element.root, 0)
+                if not ph: current_y += Inches(2.5)
 
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)

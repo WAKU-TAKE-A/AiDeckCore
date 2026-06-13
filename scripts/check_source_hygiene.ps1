@@ -28,7 +28,8 @@ $expected_generated = @(
 
 $operational_reference = @(
     "_sample/",
-    "dual-model-operation-kit/"
+    "dual-model-operation-kit/",
+    "Inputs/"
 )
 
 $statusOutput = git status --short --ignored
@@ -65,8 +66,8 @@ foreach ($line in $statusOutput) {
     }
 
     if ($status -eq "!!") {
-        if ($isGenerated) {
-            # Expected ignored generated file. We just count them, no warning.
+        if ($isGenerated -or $isOperational) {
+            # Expected ignored generated or operational file.
             $generatedArtifacts++
         } else {
             Write-Warning "Unexpected ignored file: $file"

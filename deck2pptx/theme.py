@@ -11,6 +11,8 @@ class Theme:
         self.color_text_light = RGBColor(0x66, 0x66, 0x66) # Medium Gray
         self.color_background = RGBColor(0xFF, 0xFF, 0xFF) # White
         self.color_accent = RGBColor(0x00, 0xA8, 0x6B)     # Jade
+        self.color_surface = RGBColor(0xF5, 0xF7, 0xFA)    # Light surface
+        self.color_border = RGBColor(0xCC, 0xD3, 0xDC)     # Soft border
         
         # Typography
         self.font_name = "Calibri" # Usually safe on most systems

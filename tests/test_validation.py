@@ -101,3 +101,35 @@ def test_multi_error_validation():
         assert 'image_not_found' in codes
         assert 'invalid_flow_direction' in codes
         assert 'invalid_flow_edge' in codes
+
+def test_invalid_comparison_rejected():
+    from deck2pptx.models import Comparison, ComparisonColumn
+    deck = Deck(slides=[
+        Slide(title="Test", elements=[Comparison(columns=[ComparisonColumn(label="Only One", items=[])])])
+    ])
+    with pytest.raises(ValidationError, match="Comparison element must have at least 2 columns"):
+        validate_deck(deck, Path('.'))
+
+def test_invalid_timeline_rejected():
+    from deck2pptx.models import Timeline
+    deck = Deck(slides=[
+        Slide(title="Test", elements=[Timeline(events=[])])
+    ])
+    with pytest.raises(ValidationError, match="Timeline element must have at least 1 event"):
+        validate_deck(deck, Path('.'))
+
+def test_invalid_code_block_rejected():
+    from deck2pptx.models import CodeBlock
+    deck = Deck(slides=[
+        Slide(title="Test", elements=[CodeBlock(code="   ")])
+    ])
+    with pytest.raises(ValidationError, match="CodeBlock element must have code content"):
+        validate_deck(deck, Path('.'))
+
+def test_invalid_tree_rejected():
+    from deck2pptx.models import Tree
+    deck = Deck(slides=[
+        Slide(title="Test", elements=[Tree(root=None)])
+    ])
+    with pytest.raises(ValidationError, match="Tree element must have a root node"):
+        validate_deck(deck, Path('.'))

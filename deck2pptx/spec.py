@@ -5,15 +5,24 @@ def get_spec() -> dict:
         "deck_metadata": {
             "title": "The presentation title (string).",
             "orientation": "'landscape' (default) or 'portrait'.",
-            "theme": "Theme name, e.g. 'default'."
+            "theme": "Theme name, e.g. 'default'.",
+            "toc": "Generate table of contents slide automatically (boolean).",
+            "toc_title": "Custom TOC slide title (string).",
+            "indent": "List indentation mapping for Markdown parsing. Specifies how many spaces equal one list level (integer).",
+            "font_size_l0": "Font size for level 0 text (integer). Overrides theme defaults.",
+            "font_size_l1": "Font size for level 1 text (integer). Overrides theme defaults.",
+            "font_size_l2": "Font size for level 2 text (integer). Overrides theme defaults.",
+            "font_size_l3": "Font size for level 3 text (integer). Overrides theme defaults.",
+            "font_size_l4": "Font size for level 4 text (integer). Overrides theme defaults."
         },
         "slide_metadata": {
             "title": "Slide title (string).",
             "subtitle": "Slide subtitle (string).",
             "notes": "Presenter notes (string).",
-            "layout_hint": "Force layout to 'title', 'content', 'gallery', 'flow', or 'image_only'."
+            "layout_hint": "Target PPTX layout name, or built-in hints like 'title', 'content'."
         },
         "elements": {
+            "description": "All elements support an optional `placeholder` field (string) to target PPTX placeholders.",
             "text": "A simple text block (Markdown normal paragraph).",
             "bullet_list": "A list of strings (Markdown `-` or `*` list).",
             "image": "A relative path to an image file (Markdown `![alt](path)`).",
@@ -26,17 +35,47 @@ def get_spec() -> dict:
                     "nodes": "List of objects with `id` and `label`.",
                     "edges": "List of objects with `from` and `to` matching node IDs."
                 }
+            },
+            "comparison": {
+                "description": "A comparison matrix.",
+                "fields": {
+                    "columns": "List of objects with `label` and `items` (list of strings).",
+                    "title": "Optional title string."
+                }
+            },
+            "timeline": {
+                "description": "A timeline of events.",
+                "fields": {
+                    "events": "List of objects with `label`, `title`, and optional `description`."
+                }
+            },
+            "code_block": {
+                "description": "A source code block.",
+                "fields": {
+                    "code": "The raw code string.",
+                    "language": "Optional programming language name.",
+                    "caption": "Optional caption string."
+                }
+            },
+            "tree": {
+                "description": "A hierarchical tree.",
+                "fields": {
+                    "root": "A node object with `label` and optional `children` (list of nodes)."
+                }
             }
         },
-        "markdown_notes": "In Markdown, deck metadata is specified via YAML front matter (---). Slide titles are `#` or `##` headers. Flow uses fenced blocks like ```flow horizontal",
+        "markdown_notes": "In Markdown, use `<!-- layout=\"Name\" -->`, `<!-- new_page=\"Name\" -->`, `<!-- subtitle=\"Text\" -->`, and `<!-- place=\"Name\" -->` for structural controls.\nUse code blocks for business elements: ```comparison, ```timeline, ```code <lang>, ```tree.",
         "validation_rules": [
             "Deck orientation must be 'landscape' or 'portrait'.",
             "Image paths and gallery image paths must exist relative to the input file.",
             "Flow direction must be supported.",
-            "Flow edges must reference known node IDs."
+            "Flow edges must reference known node IDs.",
+            "Comparison must have at least 2 columns.",
+            "Timeline must have at least 1 event.",
+            "CodeBlock must have code content.",
+            "Tree must have a root node."
         ],
         "non_goals": [
-            "Tree, Timeline, Comparison, CodeBlock.",
             "AsciiDoc adapter, Natural Language adapter.",
             "Full template/theme systems or broad visual redesigns.",
             "Manual coordinate specification (x, y, width, height) in the Deck model."

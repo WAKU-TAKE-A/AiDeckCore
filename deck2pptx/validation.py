@@ -80,6 +80,50 @@ def validate_deck(deck: Deck, base_dir: str | Path):
                             "element_type": "Flow",
                             "field": "edges.to_node"
                         })
+            elif type(element).__name__ == 'Comparison':
+                if len(element.columns) < 2:
+                    errors.append({
+                        "code": "invalid_comparison_columns",
+                        "message": f"Slide {slide_idx+1}: Comparison element must have at least 2 columns.",
+                        "slide_index": slide_idx,
+                        "slide_title": slide.title,
+                        "element_index": elem_idx,
+                        "element_type": "Comparison",
+                        "field": "columns"
+                    })
+            elif type(element).__name__ == 'Timeline':
+                if len(element.events) < 1:
+                    errors.append({
+                        "code": "invalid_timeline_events",
+                        "message": f"Slide {slide_idx+1}: Timeline element must have at least 1 event.",
+                        "slide_index": slide_idx,
+                        "slide_title": slide.title,
+                        "element_index": elem_idx,
+                        "element_type": "Timeline",
+                        "field": "events"
+                    })
+            elif type(element).__name__ == 'CodeBlock':
+                if not element.code.strip():
+                    errors.append({
+                        "code": "invalid_code_block",
+                        "message": f"Slide {slide_idx+1}: CodeBlock element must have code content.",
+                        "slide_index": slide_idx,
+                        "slide_title": slide.title,
+                        "element_index": elem_idx,
+                        "element_type": "CodeBlock",
+                        "field": "code"
+                    })
+            elif type(element).__name__ == 'Tree':
+                if not element.root:
+                    errors.append({
+                        "code": "invalid_tree",
+                        "message": f"Slide {slide_idx+1}: Tree element must have a root node.",
+                        "slide_index": slide_idx,
+                        "slide_title": slide.title,
+                        "element_index": elem_idx,
+                        "element_type": "Tree",
+                        "field": "root"
+                    })
 
     if errors:
         # Preserve backwards compatibility by throwing ValidationError with the first error string if simple code expects it,
