@@ -88,6 +88,68 @@ Just some text without heading.
     finally:
         Path(tmp_name).unlink()
 
+def test_markdown_layout_before_heading_accepts_utf8_bom(tmp_path):
+    md_file = tmp_path / "bom_layout.md"
+    md_file.write_text(
+        '<!-- l "TitleLayout" -->\n# スライドタイトル\n',
+        encoding='utf-8-sig',
+    )
+
+    deck = load_markdown(md_file)
+
+    assert len(deck.slides) == 1
+    assert deck.slides[0].title == "スライドタイトル"
+    assert deck.slides[0].layout_hint == "TitleLayout"
+
+def test_markdown_layout_comments_before_each_heading_bind_to_following_slide(tmp_path):
+    md_file = tmp_path / "layout_before_each_heading.md"
+    md_file.write_text(
+        '<!-- l "Title" -->\n'
+        '# 表紙\n\n'
+        '<!-- l "Section" -->\n'
+        '## 1章\n\n'
+        '<!-- l "Title&Body" -->\n'
+        '### 1節\n\n'
+        '#### どうなる1\n',
+        encoding='utf-8',
+    )
+
+    deck = load_markdown(md_file)
+
+    assert [slide.title for slide in deck.slides] == ["表紙", "1章", "1節"]
+    assert [slide.layout_hint for slide in deck.slides] == ["Title", "Section", "Title&Body"]
+
+def test_markdown_layout_comment_immediately_after_heading_still_binds_current_slide(tmp_path):
+    md_file = tmp_path / "layout_after_heading.md"
+    md_file.write_text(
+        '# 表紙\n'
+        '<!-- l "Title" -->\n\n'
+        '## 1章\n'
+        '<!-- l "Section" -->\n',
+        encoding='utf-8',
+    )
+
+    deck = load_markdown(md_file)
+
+    assert [slide.title for slide in deck.slides] == ["表紙", "1章"]
+    assert [slide.layout_hint for slide in deck.slides] == ["Title", "Section"]
+
+def test_markdown_text_hard_breaks_use_br_and_two_trailing_spaces(tmp_path):
+    md_file = tmp_path / "hard_breaks.md"
+    md_file.write_text(
+        "# Breaks\n"
+        '<!-- ph "Body" -->\n'
+        "Line 1<br>\n"
+        "Line 2  \n"
+        "Line 3\n",
+        encoding="utf-8",
+    )
+
+    deck = load_markdown(md_file)
+
+    assert deck.slides[0].elements[0].content == "Line 1\nLine 2\nLine 3"
+    assert deck.slides[0].elements[0].placeholder == "Body"
+
 def test_markdown_h1_h2_h3_are_slide_boundaries_but_h4_is_body_text():
     md_content = """
 # Title
@@ -255,6 +317,32 @@ def test_placeholder_lookup_uses_layout_placeholder_name_when_slide_name_changes
     body_placeholder = out_prs.slides[0].placeholders[body_idx]
 
     assert body_placeholder.text == "Body by layout name"
+
+def test_text_newlines_are_written_to_placeholder(tmp_path):
+    template_path = tmp_path / "newline_placeholder_template.pptx"
+    prs = Presentation()
+    layout = prs.slide_layouts[1]
+    body_idx = None
+    for placeholder in layout.placeholders:
+        if placeholder.is_placeholder and placeholder.placeholder_format.type == 7:
+            placeholder.name = "Body"
+            body_idx = placeholder.placeholder_format.idx
+            break
+    assert body_idx is not None
+    prs.save(str(template_path))
+
+    deck = Deck(title="Test", orientation="landscape", theme="default")
+    slide = Slide(title="Title", layout_hint=layout.name)
+    slide.elements.append(Text(content="Line 1\nLine 2\nLine 3", placeholder="Body"))
+    deck.slides.append(slide)
+
+    output_path = tmp_path / "output.pptx"
+    render_deck(deck, str(output_path), base_dir=tmp_path, template_path=str(template_path))
+
+    out_prs = Presentation(str(output_path))
+    body_placeholder = out_prs.slides[0].placeholders[body_idx]
+
+    assert body_placeholder.text == "Line 1\nLine 2\nLine 3"
 
 def test_title_prefers_placeholder_named_title_over_title_type(tmp_path):
     template_path = tmp_path / "custom_title_placeholder_template.pptx"

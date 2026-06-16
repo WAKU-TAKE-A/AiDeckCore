@@ -4,7 +4,7 @@ from pathlib import Path
 from .models import Deck, Slide, Text, BulletList, Image, Table, Gallery, Flow, FlowNode, FlowEdge
 
 def load_markdown(file_path: str | Path) -> Deck:
-    with open(file_path, 'r', encoding='utf-8') as f:
+    with open(file_path, 'r', encoding='utf-8-sig') as f:
         content = f.read()
 
     deck = Deck()
@@ -89,6 +89,20 @@ def load_markdown(file_path: str | Path) -> Deck:
     current_slide_lines = []
     pending_layout = None
 
+    def append_current_slide():
+        if current_slide_lines and not all(not l.strip() for l in current_slide_lines):
+            slides_data.append((pending_layout, list(current_slide_lines)))
+
+    def has_heading(lines):
+        return any(re.match(r'^(#{1,3})\s+', l) for l in lines)
+
+    def layout_arg(args):
+        if not args:
+            return None
+        if type(args[0]) == tuple:
+            return args[0][1]
+        return args[0]
+
     for line in lines:
         sline = line.strip()
         cmds = parse_html_comment(sline)
@@ -96,13 +110,11 @@ def load_markdown(file_path: str | Path) -> Deck:
         has_layout = any(cmd == 'layout' for cmd, _ in cmds)
         
         if has_newpage:
-            if current_slide_lines:
-                if not all(not l.strip() for l in current_slide_lines):
-                    slides_data.append((pending_layout, current_slide_lines))
+            append_current_slide()
             new_layout = None
             for cmd, args in cmds:
                 if cmd in ('newpage', 'layout') and args:
-                    new_layout = args[0]
+                    new_layout = layout_arg(args)
             pending_layout = new_layout
             current_slide_lines = [""]
             other_cmds = [(c, a) for c, a in cmds if c not in ('newpage', 'layout')]
@@ -113,10 +125,12 @@ def load_markdown(file_path: str | Path) -> Deck:
         if has_layout and not has_newpage and len(cmds) == 1:
             for cmd, args in cmds:
                 if cmd == 'layout' and args:
-                    if type(args[0]) == tuple: # handled "layout=Name"
-                        pending_layout = args[0][1] if args[0][0] == 'layout' else args[0][1] # Wait, if parts[0] was layout...
+                    if has_heading(current_slide_lines) and current_slide_lines[-1].strip():
+                        current_slide_lines.append(line)
                     else:
-                        pending_layout = args[0]
+                        append_current_slide()
+                        pending_layout = layout_arg(args)
+                        current_slide_lines = []
             continue
             
         if re.match(r'^(#{1,3})\s+', line):
@@ -174,8 +188,27 @@ def load_markdown(file_path: str | Path) -> Deck:
         
         def commit_text():
             if current_text:
-                get_target_list().append(Text(content=' '.join(current_text), placeholder=current_placeholder))
+                get_target_list().append(Text(content=join_text_lines(current_text), placeholder=current_placeholder))
                 current_text.clear()
+
+        def join_text_lines(lines):
+            content = ""
+            for text in lines:
+                if not content:
+                    content = text
+                elif content.endswith('\n') or text.startswith('\n'):
+                    content += text
+                else:
+                    content += ' ' + text
+            return content
+
+        def normalize_text_line(raw_text):
+            text = raw_text.strip()
+            hard_break = len(raw_text) - len(raw_text.rstrip(' ')) >= 2
+            text = re.sub(r'<br\s*/?>', '\n', text, flags=re.IGNORECASE)
+            if hard_break and not text.endswith('\n'):
+                text += '\n'
+            return text
         
         def commit_bullets():
             if current_bullets:
@@ -432,7 +465,7 @@ def load_markdown(file_path: str | Path) -> Deck:
                 continue
                 
             # Plain Text
-            current_text.append(line)
+            current_text.append(normalize_text_line(raw_line))
             i += 1
             
         commit_text()

@@ -22,6 +22,19 @@ def _name_matches(actual_name: str, requested_name: str) -> bool:
 def _name_equals(actual_name: str, requested_name: str) -> bool:
     return actual_name.strip().casefold() == requested_name.strip().casefold()
 
+def _set_text_frame_text(text_frame, content, font_name=None, font_size=None, font_color=None):
+    text_frame.clear()
+    lines = str(content).split('\n')
+    for i, line in enumerate(lines):
+        p = text_frame.paragraphs[0] if i == 0 else text_frame.add_paragraph()
+        p.text = line
+        if font_name:
+            p.font.name = font_name
+        if font_size:
+            p.font.size = font_size
+        if font_color:
+            p.font.color.rgb = font_color
+
 def render_deck(deck: Deck, output_path: str, base_dir: Path = Path('.'), template_path: str = None):
     # Initialize Presentation
     if template_path:
@@ -162,7 +175,7 @@ def render_deck(deck: Deck, output_path: str, base_dir: Path = Path('.'), templa
             
             if isinstance(element, Text):
                 if ph and ph.has_text_frame:
-                    ph.text = element.content
+                    _set_text_frame_text(ph.text_frame, element.content)
                 else:
                     target_x = ph.left if ph else content_x
                     target_y = ph.top if ph else current_y
@@ -170,11 +183,13 @@ def render_deck(deck: Deck, output_path: str, base_dir: Path = Path('.'), templa
                     txBox = slide.shapes.add_textbox(target_x, target_y, target_w, Inches(1))
                     tf = txBox.text_frame
                     tf.word_wrap = True
-                    p = tf.paragraphs[0]
-                    p.text = element.content
-                    p.font.name = theme.font_name
-                    p.font.size = Pt(deck.font_size_l0) if deck.font_size_l0 else theme.size_body
-                    p.font.color.rgb = theme.color_text
+                    _set_text_frame_text(
+                        tf,
+                        element.content,
+                        font_name=theme.font_name,
+                        font_size=Pt(deck.font_size_l0) if deck.font_size_l0 else theme.size_body,
+                        font_color=theme.color_text,
+                    )
                     if not ph: current_y += Inches(0.5)
                 
             elif isinstance(element, BulletList):
