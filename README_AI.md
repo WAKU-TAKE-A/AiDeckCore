@@ -158,3 +158,11 @@ powershell -ExecutionPolicy Bypass -File .\scripts\verify_release.ps1
 - Do not invent unsupported elements without updating the Deck model, adapters, validation, renderer, spec, docs, and tests together.
 - Do not ignore validation errors.
 - Do not claim a PPTX is ready until validation and build have both succeeded.
+
+## For System Developers / Maintainers
+
+If the user asks you to modify the `deck2pptx` core system (e.g., Python code, renderer logic, adding new elements), you are acting as a **System Developer**, not just a Presentation Author.
+
+In this case, you MUST read the strict repository policies located in the `docs/` directory before making changes or reporting completion:
+- `docs/source-baseline.md`: Rules for repository hygiene, tracked files, and allowed artifacts.
+- `docs/release-verification.md`: Rules for running the release gate pipeline (`scripts/verify_release.ps1`) to ensure your code changes do not break the system.
