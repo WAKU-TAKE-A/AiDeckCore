@@ -50,7 +50,9 @@ def render_deck(deck: Deck, output_path: str, base_dir: Path = Path('.'), templa
                             if font_size_pt: break
                         
                         if font_size_pt:
-                            height_per_line = shape.height / lines
+                            # Calculate actual line height based on font size (approx 1.2x)
+                            # 1 pt = 12700 EMU. 12700 * 1.2 = 15240
+                            height_per_line = int(font_size_pt * 15240)
                             first_para_text = shape.text_frame.paragraphs[0].text
                             cpi = len(first_para_text) / (shape.width / 914400.0) if shape.width else 60.0 / 6.0
                             calibrated_metrics[font_size_pt] = {

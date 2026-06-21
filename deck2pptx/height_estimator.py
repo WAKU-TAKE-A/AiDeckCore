@@ -39,7 +39,7 @@ def _estimate_element_height(element, content_width, calibrated_metrics=None, th
             width_inches = content_width / 914400.0 if content_width else 10.0
             chars_per_line = max(1, int(width_inches * calib_cpi))
             estimated_lines = element.content.count('\n') + 1 + len(element.content) // chars_per_line
-            return max(_TEXT_MIN_HEIGHT, estimated_lines * calib_h)
+            return max(_TEXT_MIN_HEIGHT, estimated_lines * calib_h + Inches(0.1))
         else:
             estimated_lines = element.content.count('\n') + 1 + len(element.content) // 60
             return max(_TEXT_MIN_HEIGHT, estimated_lines * _TEXT_LINE_HEIGHT)
@@ -64,7 +64,7 @@ def _estimate_element_height(element, content_width, calibrated_metrics=None, th
             else:
                 weight = 1.0 if lvl == 0 else 0.8
                 total_h += weight * _BULLET_LINE_HEIGHT
-        return max(_BULLET_MIN_HEIGHT, total_h)
+        return max(_BULLET_MIN_HEIGHT, total_h + Inches(0.1))
 
     if isinstance(element, CodeBlock):
         lines = len(element.code.splitlines()) if element.code else 1
