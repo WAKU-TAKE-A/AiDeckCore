@@ -3,7 +3,7 @@ from ..render_context import SlideContext
 from ..height_estimator import _estimate_element_height, ELEMENT_GAP
 
 def render(element, ctx: SlideContext, x, y, w, h) -> float:
-    from ..renderer import _set_text_frame_text
+    from ..render_utils import _set_text_frame_text
     ph = ctx.find_placeholder(getattr(element, 'placeholder', None))
     if ph and ph.has_text_frame:
         _set_text_frame_text(ph.text_frame, element.content)

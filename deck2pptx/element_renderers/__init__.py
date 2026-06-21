@@ -13,6 +13,6 @@ def render_element(element, ctx, x, y, w, h) -> float:
     if isinstance(element, Mermaid):      return mermaid.render(element, ctx, x, y, w, h)
     if isinstance(element, Tree):         return tree.render(element, ctx, x, y, w, h)
     if isinstance(element, Split):        return split.render(element, ctx, x, y, w, h)
-    if type(element).__name__ == 'Comparison': return comparison.render(element, ctx, x, y, w, h)
-    if type(element).__name__ == 'Timeline':   return comparison.render_timeline(element, ctx, x, y, w, h)
+    if isinstance(element, Comparison):   return comparison.render(element, ctx, x, y, w, h)
+    if isinstance(element, Timeline):     return comparison.render_timeline(element, ctx, x, y, w, h)
     return y  # unknown: no-op

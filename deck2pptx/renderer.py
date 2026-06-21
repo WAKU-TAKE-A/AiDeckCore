@@ -1,9 +1,8 @@
 from pptx import Presentation
 from pptx.util import Inches, Pt
-from pptx.enum.shapes import MSO_SHAPE, MSO_CONNECTOR
 from pptx.enum.text import PP_ALIGN
 from pathlib import Path
-from .models import Deck, Slide, Text, BulletList, Image, Table, Gallery, Flow, Split, CodeBlock, Mermaid
+from .models import Deck, Slide, BulletList
 from .layout import Layout, get_slide_layout_type
 from .theme import Theme
 
@@ -26,18 +25,7 @@ def _name_matches(actual_name: str, requested_name: str) -> bool:
 def _name_equals(actual_name: str, requested_name: str) -> bool:
     return actual_name.strip().casefold() == requested_name.strip().casefold()
 
-def _set_text_frame_text(text_frame, content, font_name=None, font_size=None, font_color=None):
-    text_frame.clear()
-    lines = str(content).split('\n')
-    for i, line in enumerate(lines):
-        p = text_frame.paragraphs[0] if i == 0 else text_frame.add_paragraph()
-        p.text = line
-        if font_name:
-            p.font.name = font_name
-        if font_size:
-            p.font.size = font_size
-        if font_color:
-            p.font.color.rgb = font_color
+
 
 def render_deck(deck: Deck, output_path: str, base_dir: Path = Path('.'), template_path: str = None):
     # Initialize Presentation
