@@ -111,6 +111,10 @@ When a PowerPoint template is involved, always inspect it first:
    ```powershell
    .\.venv\Scripts\python.exe -m deck2pptx build input.md output.pptx --template template.pptx
    ```
+   **Calibration Flag**: If the user asks for exact text wrapping and bounding box heights based on the template's typography (e.g., matching the font heights and line spacing exactly), append the `--calib-first-slide` flag. This flag extracts physical dimension metrics from the text frames on the 1st slide of the template.
+   ```powershell
+   .\.venv\Scripts\python.exe -m deck2pptx build input.md output.pptx --template template.pptx --calib-first-slide
+   ```
    Fallback behavior is active: if a layout or placeholder name is not found in the template, the default behavior will be used without crashing.
 
 ### Document Structure & Typography
