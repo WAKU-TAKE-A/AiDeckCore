@@ -34,13 +34,15 @@ def test_markdown_consecutive_images_preserve_gallery_captions(tmp_path):
     _make_image(tmp_path / "a.jpg")
     _make_image(tmp_path / "b.jpg")
     md = tmp_path / "deck.md"
-    md.write_text("# Gallery\n\n![first](a.jpg)\n![second](b.jpg)\n", encoding="utf-8")
+    md.write_text("# Gallery\n\n<!-- gallery -->\n![first](a.jpg)\n![second](b.jpg)\n", encoding="utf-8")
 
     deck = load_deck(md)
 
     gallery = deck.slides[0].elements[0]
     assert isinstance(gallery, Gallery)
-    assert [img.caption for img in gallery.images] == ["first", "second"]
+    assert len(gallery.images) == 2
+    assert gallery.images[0].caption == "first"
+    assert gallery.images[1].caption == "second"
 
 
 def test_yaml_image_caption_and_gallery_grid_are_parsed(tmp_path):
