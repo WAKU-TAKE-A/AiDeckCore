@@ -30,3 +30,6 @@ dual-model-operation-kit/
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Agent configs
+.agents/
