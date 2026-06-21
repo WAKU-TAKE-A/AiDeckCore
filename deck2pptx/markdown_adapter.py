@@ -212,6 +212,7 @@ def load_markdown(file_path: str | Path) -> Deck:
             text = raw_text.strip()
             hard_break = len(raw_text) - len(raw_text.rstrip(' ')) >= 2
             text = re.sub(r'<br\s*/?>', '\n', text, flags=re.IGNORECASE)
+            text = text.replace('\\n', '\n')
             if hard_break and not text.endswith('\n'):
                 text += '\n'
             return text
@@ -264,6 +265,22 @@ def load_markdown(file_path: str | Path) -> Deck:
                         handled_line = True
                     elif cmd == 'placeholder':
                         current_placeholder = args[0] if args else None
+                        if len(args) > 1:
+                            hidden_val = normalize_text_line(args[1])
+                            commit_text()
+                            commit_bullets()
+                            commit_table()
+                            get_target_list().append(Text(content=hidden_val, placeholder=current_placeholder))
+                            current_placeholder = None
+                        handled_line = True
+                    elif cmd in ('v', 'value'):
+                        if current_placeholder and args:
+                            hidden_val = normalize_text_line(args[0])
+                            commit_text()
+                            commit_bullets()
+                            commit_table()
+                            get_target_list().append(Text(content=hidden_val, placeholder=current_placeholder))
+                            current_placeholder = None
                         handled_line = True
                     elif cmd == 'gallery':
                         commit_text()
