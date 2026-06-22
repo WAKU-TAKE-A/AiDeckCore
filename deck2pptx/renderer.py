@@ -39,7 +39,7 @@ def render_deck(deck: Deck, output_path: str, base_dir: Path = Path('.'), templa
             for shape in calib_slide.shapes:
                 if shape.has_text_frame:
                     text = shape.text
-                    lines = text.count('\n') + 1
+                    lines = text.count('\n') + text.count('\x0b') + 1
                     if lines >= 2:
                         font_size_pt = None
                         for p in shape.text_frame.paragraphs:
