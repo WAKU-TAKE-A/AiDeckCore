@@ -57,12 +57,12 @@ def render(element, ctx: SlideContext, x, y, w, h) -> float:
         p.font.name = ctx.theme.font_name
         p.font.size = ctx.theme.size_body
         p.font.bold = True
-        p.alignment = PP_ALIGN.CENTER
+        p.alignment = PP_ALIGN.LEFT
         
         for item in col.items:
             p = tf.add_paragraph()
-            p.text = item
-            p.level = 1
+            p.text = f"• {item}"
+            p.level = 0
             p.font.name = ctx.theme.font_name
             p.font.size = ctx.theme.size_body_semi_small
             
