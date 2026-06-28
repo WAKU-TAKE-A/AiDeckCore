@@ -75,10 +75,10 @@ def _estimate_element_height(element, content_width, calibrated_metrics=None, th
             else:
                 chars_per_line = theme.text.fallback_chars_per_line
             estimated_lines = element.content.count('\n') + 1 + len(element.content) // chars_per_line
-            return max(theme.text.min_height, estimated_lines * line_height + theme.text.padding)
+            return estimated_lines * line_height + theme.text.padding
         else:
             estimated_lines = element.content.count('\n') + 1 + len(element.content) // theme.text.fallback_chars_per_line
-            return max(theme.text.min_height, estimated_lines * theme.text.line_height)
+            return estimated_lines * theme.text.line_height
 
     if isinstance(element, BulletList):
         from .models import ListItem
@@ -106,11 +106,11 @@ def _estimate_element_height(element, content_width, calibrated_metrics=None, th
             else:
                 weight = theme.bullet.level_weight_default if lvl == 0 else theme.bullet.level_weight_indented
                 total_h += weight * theme.bullet.line_height
-        return max(theme.bullet.min_height, total_h + theme.bullet.padding)
+        return total_h + theme.bullet.padding
 
     if isinstance(element, CodeBlock):
         lines = len(element.code.splitlines()) if element.code else 1
-        box_h = Inches(max(theme.code.min_height, lines * theme.code.line_height_factor + theme.code.height_padding))
+        box_h = Inches(lines * theme.code.line_height_factor + theme.code.height_padding)
         caption_h = theme.code.caption_height if (getattr(element, 'caption', None) or getattr(element, 'language', None)) else 0
         return caption_h + box_h
 
@@ -120,7 +120,7 @@ def _estimate_element_height(element, content_width, calibrated_metrics=None, th
             return getattr(element, 'height_hint', None) or theme.mermaid.default_height
         else:
             lines = len(element.code.splitlines()) if element.code else 1
-            box_h = Inches(max(theme.code.min_height, lines * theme.code.line_height_factor + theme.code.height_padding))
+            box_h = Inches(lines * theme.code.line_height_factor + theme.code.height_padding)
             return box_h
 
     if isinstance(element, Tree):
@@ -275,7 +275,7 @@ def calibrate_line_heights(deck, theme):
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
-def extract_template_metrics(slide) -> tuple[dict, dict]:
+def extract_template_metrics(slide, theme=None) -> tuple[dict, dict]:
     """Extracts calibration metrics from a slide."""
     calibrated_metrics = {}
     title_metrics = {
@@ -318,7 +318,13 @@ def extract_template_metrics(slide) -> tuple[dict, dict]:
                     if font_size_pt: break
                 
                 if font_size_pt:
-                    height_per_line = int(font_size_pt * 15240)
+                    if shape.height:
+                        height_per_line = int(shape.height / lines)
+                    else:
+                        theme = _theme_or_default(theme)
+                        lh_factor = theme.calibration.line_height_factor if theme else 1.2
+                        height_per_line = int(font_size_pt * 12700 * lh_factor)
+                        
                     first_para_text = shape.text_frame.paragraphs[0].text.split('\x0b')[0]
                     cpi = len(first_para_text) / (shape.width / 914400.0) if shape.width else 60.0 / 6.0
                     calibrated_metrics[font_size_pt] = {

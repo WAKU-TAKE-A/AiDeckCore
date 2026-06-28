@@ -106,7 +106,6 @@ class TextTheme:
     def __init__(self, cp):
         s = "text"
         self.line_height = _in(cp, s, "line_height")
-        self.min_height = _in(cp, s, "min_height")
         self.padding = _in(cp, s, "padding")
         self.fallback_chars_per_line = _i(cp, s, "fallback_chars_per_line")
 
@@ -116,7 +115,6 @@ class BulletTheme:
     def __init__(self, cp):
         s = "bullet"
         self.line_height = _in(cp, s, "line_height")
-        self.min_height = _in(cp, s, "min_height")
         self.padding = _in(cp, s, "padding")
         self.indent_per_level = _f(cp, s, "indent_per_level")
         self.level_weight_default = _f(cp, s, "level_weight_default")
@@ -173,7 +171,6 @@ class CodeTheme:
         self.caption_height = _in(cp, s, "caption_height")
         self.line_height_factor = _f(cp, s, "line_height_factor")
         self.height_padding = _f(cp, s, "height_padding")
-        self.min_height = _f(cp, s, "min_height")
 
 
 class ComparisonTheme:

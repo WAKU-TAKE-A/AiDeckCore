@@ -18,6 +18,8 @@ def render(element, ctx: SlideContext, x, y, w, h) -> float:
         txBox = ctx.slide.shapes.add_textbox(target_x, target_y, target_w, rendered_height)
         tf = txBox.text_frame
         tf.word_wrap = True
+        tf.margin_top = ctx.theme.text.padding
+        tf.margin_bottom = ctx.theme.text.padding
         _set_text_frame_text(
             tf,
             element.content,
@@ -57,6 +59,8 @@ def render_bullet(element, ctx: SlideContext, x, y, w, h) -> float:
         txBox = ctx.slide.shapes.add_textbox(target_x, target_y, target_w, rendered_height)
         tf = txBox.text_frame
         tf.word_wrap = True
+        tf.margin_top = ctx.theme.bullet.padding
+        tf.margin_bottom = ctx.theme.bullet.padding
         for i, item in enumerate(element.items):
             is_li = isinstance(item, ListItem)
             text = item.text if is_li else str(item)

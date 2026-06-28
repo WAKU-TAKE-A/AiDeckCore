@@ -49,7 +49,7 @@ def render_deck(deck: Deck, output_path: str, base_dir: Path = Path('.'), templa
         if do_calib and len(prs.slides) > 0:
             calib_slide = prs.slides[0]
             from .height_estimator import extract_template_metrics
-            calibrated_metrics, title_metrics = extract_template_metrics(calib_slide)
+            calibrated_metrics, title_metrics = extract_template_metrics(calib_slide, theme)
 
         level_fonts = {}
         if calibrated_metrics:

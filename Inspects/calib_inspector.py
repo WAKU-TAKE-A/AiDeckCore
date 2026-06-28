@@ -1,4 +1,5 @@
 from pptx import Presentation
+from deck2pptx.height_estimator import extract_template_metrics
 
 def inspect_calibration(pptx_path: str):
     print(f"Inspecting Calibration Data for: {pptx_path}")
@@ -16,7 +17,6 @@ def inspect_calibration(pptx_path: str):
     print("\n--- Calibration data from Slide 1 ---")
     
     EMU_TO_INCH = 1.0 / 914400.0
-    calibrated_metrics = {}
 
     for i, shape in enumerate(slide.shapes):
         if not shape.has_text_frame:
@@ -54,13 +54,9 @@ def inspect_calibration(pptx_path: str):
             if w_in > 0 and font_size_pt:
                 cpi = len(first_line) / w_in
                 print(f"  Calculated CPI: {cpi:.2f} chars/inch")
-                
-                if lines_count >= 2:
-                    height_per_line_emu = int(font_size_pt * 15240)
-                    calibrated_metrics[font_size_pt] = {
-                        'height': height_per_line_emu,
-                        'cpi': cpi
-                    }
+
+    # Call actual implementation
+    calibrated_metrics, title_metrics = extract_template_metrics(slide)
 
     if calibrated_metrics:
         print("\n--- Extracted Calibrated Metrics ---")

@@ -33,7 +33,7 @@ def test_auto_calib_english_title(tmp_path):
     slide.shapes.title.text = "  CalibRation  "
     # To have calibrated_metrics extracted, the slide needs a shape with 2+ lines of text.
     txBox = slide.shapes.add_textbox(0, 0, 1000000, 1000000)
-    txBox.text = "Line 1\nLine 2"
+    txBox.text = "Line 1\nLine 2\nLine 3"
     for p in txBox.text_frame.paragraphs:
         for r in p.runs:
             r.font.size = Pt(24)
@@ -114,7 +114,7 @@ def test_auto_calib_japanese_regex(tmp_path):
     slide = prs.slides.add_slide(slide_layout)
     slide.shapes.title.text = "キャリ〰ブレーション" # Any character matches '.'
     txBox = slide.shapes.add_textbox(0, 0, 1000000, 1000000)
-    txBox.text = "Line 1\nLine 2"
+    txBox.text = "Line 1\nLine 2\nLine 3"
     for p in txBox.text_frame.paragraphs:
         for r in p.runs:
             r.font.size = Pt(24)

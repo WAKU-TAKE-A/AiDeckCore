@@ -20,7 +20,7 @@ def render(element, ctx: SlideContext, x, y, w, h) -> float:
         start_y += caption_height
 
     line_count = len(element.code.splitlines()) if element.code else 1
-    box_height = Inches(max(ctx.theme.code.min_height, line_count * ctx.theme.code.line_height_factor + ctx.theme.code.height_padding))
+    box_height = Inches(line_count * ctx.theme.code.line_height_factor + ctx.theme.code.height_padding)
 
     shape = ctx.slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, start_x, start_y, width, box_height)
     shape.fill.solid()

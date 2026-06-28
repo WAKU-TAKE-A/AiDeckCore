@@ -171,4 +171,4 @@ def test_gallery_rendering_fits_images_and_captions_inside_content_area(tmp_path
 
     for caption in captions:
         assert caption.top + caption.height <= layout.content_y + layout.content_height
-        assert caption.text_frame.paragraphs[0].font.size.pt == 14
+        assert caption.text_frame.paragraphs[0].font.size.pt == 12

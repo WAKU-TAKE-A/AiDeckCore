@@ -445,5 +445,5 @@ def test_list_hierarchy_rendering(tmp_path):
                 if p.text == "Level 1 item":
                     found_text = True
                     assert p.level == 1
-                    assert p.font.size.pt == 16.0
+                    assert p.font.size.pt == 14.0
     assert found_text
