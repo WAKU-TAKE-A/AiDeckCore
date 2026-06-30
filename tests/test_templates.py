@@ -340,7 +340,7 @@ def test_text_newlines_are_written_to_placeholder(tmp_path):
     out_prs = Presentation(str(output_path))
     body_placeholder = out_prs.slides[0].placeholders[body_idx]
 
-    assert body_placeholder.text == "Line 1\x0bLine 2\x0bLine 3"
+    assert body_placeholder.text == "Line 1\nLine 2\nLine 3"
 
 def test_title_prefers_placeholder_named_title_over_title_type(tmp_path):
     template_path = tmp_path / "custom_title_placeholder_template.pptx"
